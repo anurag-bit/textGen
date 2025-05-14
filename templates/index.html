@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Shakespearean Text Generator</h1>
+        <div class="form-container">
+            <div class="input-group">
+                <label for="length">Length of text to generate:</label>
+                <input type="number" id="length" value="300" min="10" max="1000">
+            </div>
+            <div class="input-group">
+                <label for="temperature">Temperature (creativity):</label>
+                <input type="range" id="temperature" value="0.5" min="0.1" max="1.0" step="0.05">
+                <span id="temperature-value">0.5</span>
+            </div>
+            <button id="generate-btn">Generate Text</button>
+        </div>
+        <div id="loading" style="display: none;">Generating...</div>
+        <div class="result-container">
+            <h2>Generated Text:</h2>
+            <textarea id="generated-text" rows="15" readonly></textarea>
+        </div>
+    </div>
+    <script>
+        document.getElementById('temperature').addEventListener('input', function() {
+            document.getElementById('temperature-value').textContent = this.value;
+        });
+
+        document.getElementById('generate-btn').addEventListener('click', function() {
+            const length = document.getElementById('length').value;
+            const temperature = document.getElementById('temperature').value;
+            const generatedTextElement = document.getElementById('generated-text');
+            const loadingElement = document.getElementById('loading');
+
+            generatedTextElement.value = ''; // Clear previous text
+            loadingElement.style.display = 'block'; // Show loading indicator
+
+            fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    length: parseInt(length),
+                    temperature: parseFloat(temperature)
+                }),
+            })
+            .then(response => {
+                loadingElement.style.display = 'none'; // Hide loading indicator
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || 'Server error'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.generated_text) {
+                    generatedTextElement.value = data.generated_text;
+                } else if (data.error) {
+                    generatedTextElement.value = "Error: " + data.error;
+                }
+            })
+            .catch((error) => {
+                loadingElement.style.display = 'none'; // Hide loading indicator
+                console.error('Error:', error);
+                generatedTextElement.value = "Error: " + error.message;
+            });
+        });
+    </script>
+</body>
+</html>
